@@ -8,7 +8,10 @@
   },
   "scripts": {
     "start": "node app.js",
+    "ginit": "gcloud init",
     "gdeploy": "gcloud app deploy --version test",
+    "gbrowse": "gcloud app browse",
+    "gstop": "gcloud app versions stop test",
     "hdeploy": "git push heroku master"
   },
   "author": "Bryan Vullo",
