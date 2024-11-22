@@ -8,6 +8,9 @@ const app = express();
 const server = require('http').Server(app);
 const io = require('socket.io')(server);
 
+const players = [];
+const audienceMembers = [];
+
 //Setup static page handling
 app.set('view engine', 'ejs');
 app.use('/static', express.static('public'));
@@ -29,6 +32,7 @@ function startServer() {
     const PORT = process.env.PORT || 8080;
     server.listen(PORT, () => {
         console.log(`Server listening on port ${PORT}`);
+        console.log('Press Ctrl+C to quit.');
     });
 }
 
@@ -37,6 +41,47 @@ function handleChat(message) {
     console.log('Handling chat: ' + message); 
     io.emit('chat',message);
 }
+
+// handle register
+function handleRegister(username, password) {
+  console.log('Handling register: ' + username + ' ' + password);
+}
+
+// handle login
+function handleLogin(username, password) {
+  console.log('Handling login: ' + username + ' ' + password);
+}
+
+// handle prompt
+function handlePrompt(prompt) {
+  console.log('Handling prompt: ' + prompt);
+}
+
+// handle answer
+function handleAnswer(answer) {
+  console.log('Handling answer: ' + answer);
+}
+
+// handle vote
+function handleVote(vote) {
+  console.log('Handling vote: ' + vote);
+}
+
+// handle next
+function handleNext() {
+  console.log('Handling next');
+}
+
+// Azure Functions
+// TODO: call the Azure Functions and return the result
+function registerPlayer(username, password) {}
+function loginPlayer(username, password) {}
+function updatePlayer(username, addToGames, addToScore) {}
+function createPrompt(text, username) {}
+function deletePrompt(username) {}
+function suggestPrompt(keyword) {}
+function getUtils(players, langCode) {}
+function podium() {}
 
 //Handle new connection
 io.on('connection', socket => { 
