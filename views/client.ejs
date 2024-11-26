@@ -6,12 +6,38 @@
     <h2 class="title">ECS Example Game</h2>
 
     <div id="game">
+
+        <!-- Error Display -->
+        <div v-if="error" class="alert alert-danger">
+            <strong>Error: </strong> {{error}}
+        </div>
+
         <div v-if="connected">
-            <%- include('chat'); -%>
+            <p>hello world my state: {{me.role}}</p>
+
+            <div v-if="me.state === 0">
+                <%- include('credentialsPrompt'); -%>
+            </div>
+            <div v-else>
+                <%- include('chat'); -%>
+            </div>
+
         </div>
         <div v-else>
             <p>Connecting...</p>
         </div>
+
+        <!-- Admin Advance Button -->
+        <div v-if="me.role === 0">
+            <%- include('nextButton'); -%>>
+        </div>
+
+        <!-- Admin Debug Info -->
+        <div class="admin" v-if="me.role === 0">
+            <p><strong>Debug information:</strong> My state: {{me.state}} | Game state: {{state.state}}</p>
+        </div>
+
+
     </div>
 
     <%- include('footer'); -%>
