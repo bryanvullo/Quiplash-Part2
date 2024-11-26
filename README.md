@@ -16,6 +16,11 @@ To deploy the application to Google App Engine, run:
 $ npm run gdeploy
 ```
 
+To list the deployed versions, run:
+```
+$ gcloud app versions list
+```
+
 To stop the deployment, run:
 ```
 $ gcloud app versions stop test
@@ -32,4 +37,9 @@ to init GAE:
 $ gcloud init
 ```
 and select the project.
+
+to set env variables:
+```
+$ npm config set <key>=<value>
+```
 
