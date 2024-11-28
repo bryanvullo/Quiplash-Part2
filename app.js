@@ -10,7 +10,6 @@ const io = require('socket.io')(server);
 
 // set up requests
 const axios = require("axios");
-const e = require("express");
 
 const players = new Map();
 const audience = new Map();
@@ -18,8 +17,9 @@ const socketsToUsers = new Map();
 const usersToSockets = new Map();
 const submittedPrompts = new Map();
 let state = {state: 0, players: players, audience: audience, activePrompts: [], roundPrompts: [],
-    answersReceived: {}, votesReceived: {}, currentPrompt: null, roundScores: null, totalScores: null,
-    language: 'en', roundNumber: 0};
+    answersReceived: {}, votesReceived: {}, currentPrompt: '', promptVotes: {}, roundScores: {}, totalScores: {},
+    language: 'en', roundNumber: 0, podium: {}};
+const MAX_ROUNDS = 3;
 
 //Setup static page handling
 app.set('view engine', 'ejs');
@@ -35,7 +35,7 @@ app.get('/display', (req, res) => {
 });
 
 // URL of the backend API
-const BACKEND_ENDPOINT = 'http://localhost:8181' || process.env.BACKEND;
+const BACKEND_ENDPOINT = process.env.BACKEND || 'http://localhost:8181';
 const BACKEND_KEY = process.env.BACKEND_KEY || 'test';
 
 //Start the server
@@ -119,7 +119,7 @@ async function handleRegister(socket, username, password) {
     try {
         const response = await registerPlayerAz(username, password);
         console.log('Handle function response:' + response);
-        if (response.result == true) {
+        if (response.result === true) {
             console.log('Player registered successfully');
             handleJoin(socket, username);
         } else {
@@ -147,18 +147,16 @@ async function handleLogin(socket, username, password) {
             error(socket, response.msg, false);
         }
     } catch (e) {
-        console.log('Error in login');
-        console.log(e);
         error(socket, 'Error in login', false);
     }
 }
 
 // handle prompt
-function handlePrompt(socket, prompt) {
+async function handlePrompt(socket, prompt) {
     console.log('Handling prompt submission: ' + prompt);
     const username = socketsToUsers.get(socket);
     const isPlayer = players.has(username);
-    let user = null;
+    let user;
     if (isPlayer) {
         user = players.get(username);
     } else {
@@ -166,7 +164,7 @@ function handlePrompt(socket, prompt) {
     }
     
     // submit prompt to API
-    const response = createPromptAz(prompt, username);
+    const response = await createPromptAz(prompt, username);
     const data = response.data;
     if (data.result === true) {
         console.log('Prompt submitted successfully');
@@ -222,24 +220,37 @@ function handleVote(socket, answer, prompt) {
     }
     
     // check if all votes are in
-    let allVotes = true;
+    // const allVotes = allVotesIn();
+    // if (allVotes) {
+    //     if (state.roundPrompts.length === 0) return;
+    //     state.currentPrompt = state.roundPrompts.pop();
+    //     const answers = state.answersReceived[state.currentPrompt];
+    //     const playersWhoAnswered = answers.map(answer => answer.username);
+    //     for (const [_, player] of players) {
+    //         if (playersWhoAnswered.includes(player.username)) {
+    //             player.state = 9;
+    //         } else {
+    //             player.state = 7;
+    //         }
+    //     }
+    //     for (const [_, member] of audience) {
+    //         member.state = 7;
+    //     }
+    // }
+}
+
+function allVotesIn() {
     for (const [_, player] of players) {
         if (player.state < 8) {
-            allVotes = false;
-            break;
+            return false;
         }
     }
     for (const [_, member] of audience) {
         if (member.state < 8) {
-            allVotes = false;
-            break;
+            return false;
         }
     }
-    if (allVotes) {
-        state.currentPrompt = state.roundPrompts.pop();
-        
-    }
-    
+    return true;
 }
 
 // handle next
@@ -268,35 +279,50 @@ function handleNext(socket) {
             }
             break;
         case 3:
-            console.log('Answers phase over, starting votes');
-            state.state++;
-            updateAll();
-            endAnswers();
-            startVotes();
+            if (endAnswers()) {
+                console.log('Answers phase over, starting votes');
+                state.state++;
+                startVotes();
+                updateAll();
+            }
             break;
         case 4:
-            console.log('Votes phase over, starting results');
-            state.state++;
-            updateAll();
-            endVotes();
-            startResults();
+            if (endVotes(socket)) {
+                console.log('Votes phase over, showing prompt scores');
+                state.state++;
+                updateAll();
+            }
             break;
         case 5:
-            console.log('Results phase over, starting scores');
-            state.state++;
+            if (endPromptResults()) {
+                console.log('Prompt Scores phase over, starting scores');
+                startTotalScores();
+                state.state++;
+            } else {
+                //return to voting phase on next prompt
+                console.log('Prompt Scores phase over, starting votes for next prompt');
+                state.state = 4;
+                startVotes();
+            }
             updateAll();
-            endResults();
-            startScores();
             break;
         case 6:
-            console.log('Scores phase over, ending game');
-            state.state++;
+            console.log('Total Scores phase over, ending game');
+            if (endTotalScores()) {
+                state.state++;
+                endGame();
+            } else {
+                //there's more rounds to play
+                state.roundNumber++;
+                state.state = 3;
+                startAnswers();
+            }
             updateAll();
-            endScores();
-            endGame();
             break;
     }
 }
+
+// GAME TRANSITIONS LOGIC
 // start game
 function startGame() {
     console.log('Game starting');
@@ -407,22 +433,131 @@ function startAnswers() {
     }
 }
 // end answers
-function endAnswers() {}
+function endAnswers() {
+    //check if every player has answered
+    for (const [_, player] in players) {
+        if (player.state !== 5) {
+            return false;
+        }
+    }
+    return true;
+}
 // start votes
-function startVotes() {}
+function startVotes() {
+    state.currentPrompt = state.roundPrompts.pop();
+    const playersWhoAnswered = state.answersReceived[state.currentPrompt].map(answer => answer.username);
+    for (const [username, player] in players) {
+        if (playersWhoAnswered.includes(username)) {
+            player.state = 9; //cannot vote
+        } else {
+            player.state = 7;
+        }
+    }
+    for (const [_, member] in audience) {
+        member.state = 7;
+    }
+}
 // end votes
-function endVotes() {}
-// start results
-function startResults() {}
+function endVotes(socket) {
+    // check if all votes are in
+    if (!allVotesIn()) {
+        error(socket, 'Not all votes are in', false);
+        return false;
+    }
+    console.log('Ending voting phase for this prompt');
+    if (state.roundScores[state.roundNumber] === undefined) {
+        state.roundScores[state.roundNumber] = {};
+    }
+    
+    //start calculating scores
+    const playerVotes = {};
+    const playersWhoAnswered = state.answersReceived[state.currentPrompt].map(answer => answer.username);
+    for (const player of playersWhoAnswered) {
+        playerVotes[player] = 0;
+    }
+    
+    // count votes
+    const answers = state.votesReceived[state.currentPrompt];
+    answers.forEach(answer => {
+        const username = state.answersReceived[state.currentPrompt].find(ans => ans.answer === answer).username;
+        playerVotes[username]++;
+    });
+    
+    state.promptVotes = playerVotes;
+    
+    // calculate scores for this prompt
+    for (const [player, votes] in playerVotes) {
+        const score = votes * state.roundNumber * 100;
+        
+        if (state.roundScores[state.roundNumber][player] === undefined) {
+            state.roundScores[state.roundNumber][player] = 0;
+        }
+        state.roundScores[state.roundNumber][player] += score;
+    }
+    
+    return true;
+}
 // end results
-function endResults() {}
+function endPromptResults() {
+    // check if all prompts have been voted on
+    return state.roundPrompts.length === 0;
+    
+}
 // start scores
-function startScores() {}
+function startTotalScores() {
+    // calculate total scores
+    for (const [player, score] in state.roundScores[state.roundNumber]) {
+        if (state.totalScores[player] === undefined) {
+            state.totalScores[player] = 0;
+        }
+        state.totalScores[player] += score;
+    }
+}
 // end scores
-function endScores() {}
+function endTotalScores() {
+    //check if all rounds are over
+    return state.roundNumber === MAX_ROUNDS;
+}
 // end game
-function endGame() {}
+async function endGame() {
+    //update players in cloud server
+    for (const [username, _] in players) {
+        const response = await updatePlayerAz(username, 1, state.totalScores[username]);
+        console.log('Player ' + username + ' update response:' + response);
+        if (response.result === true) {
+            console.log('Player updated successfully');
+        } else {
+            console.log('Player not updated');
+        }
+    }
+    
+    //get global podium
+    const response = await podiumAz();
+    console.log('Podium response:' + response);
+    state.podium = response.data;
+}
 
+
+// AZURE FUNCTIONS
+// main function to call Azure functions
+async function callAzureFunction(endpoint, method, data={}) {
+    try {
+        let response = await axios.request({
+            url: `${BACKEND_ENDPOINT}${endpoint}`,
+            method: method,
+            data: data,
+            headers: {
+                'x-functions-key': BACKEND_KEY,
+                'Content-Type': 'application/json'
+            }
+        });
+        console.log("Response from Azure function: ", response.data);
+        return response.data;
+    } catch (e) {
+        console.error("Error in calling Azure function: ", e.response.data);
+        return e.response.data;
+    }
+}
 // get prompts from API
 function getAPIPrompts() {
     const prompts = [];
@@ -434,22 +569,7 @@ function getAPIPrompts() {
     }
     return prompts;
 }
-
-// Azure Functions
-// TODO: handle outputs from the Azure Functions
-async function callAzureFunction(endpoint, method, data={}) {
-    const url = `${BACKEND_ENDPOINT}${endpoint}`;
-    let response = await axios.request({
-        url: url,
-        method: method,
-        data: data,
-        headers: {
-            'x-functions-key': BACKEND_KEY,
-            'Content-Type': 'application/json'
-        }
-    });
-    return response.data;
-}
+// dedicated functions for Azure functions
 function registerPlayerAz(username, password) {
     return callAzureFunction('/player/register', 'post', {username, password});
 }
@@ -487,7 +607,7 @@ io.on('connection', socket => {
     
     //Handle disconnection
     socket.on('disconnect', () => {
-        console.log('Dropped connection');
+        console.log('Dropped connection: ' + socketsToUsers.get(socket));
     });
     
     //Handle register
