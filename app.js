@@ -49,15 +49,15 @@ function startServer() {
 }
 
 //Chat message
-function handleChat(message) {
+function handleChat(name, message) {
     console.log('Handling chat: ' + message);
-    io.emit('chat',message);
+    io.emit('chat', name, message);
 }
 
 //Handle announcements
 function announce(message) {
     console.log('Announcement: ' + message);
-    io.emit('chat',message);
+    io.emit('chat', "Game", message);
 }
 
 // send error
@@ -602,7 +602,8 @@ io.on('connection', socket => {
     //Handle on chat message received
     socket.on('chat', message => {
         console.log('Chat message received: ' + message);
-        handleChat(message);
+        const username = socketsToUsers.get(socket);
+        handleChat(username, message);
     });
     
     //Handle disconnection
