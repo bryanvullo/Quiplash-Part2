@@ -1,0 +1,12 @@
+<div v-if="me.state === 4">
+    <h3>{{me.prompt}}</h3>
+    <input id="answerInput" @keyup.enter="answer()" v-model="answerText" type="text" class="form-control" placeholder="Enter your answer">
+    <button class="btn btn-sm btn-primary" @click="answer()">Submit</button>
+</div>
+<div v-if="me.state === 5">
+    <h3>{{me.prompt}}</h3>
+    <h4>All answers submitted! Wait for the rest of the players</h4>
+</div>
+<div v-if="me.state === 6">
+    <h3>Waiting for players to answer their prompts...</h3>
+</div>
