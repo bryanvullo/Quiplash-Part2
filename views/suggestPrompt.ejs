@@ -1,9 +1,9 @@
 <div v-if="me.state === 2">
     <h3>Suggest a prompt!</h3>
-    <input id="promptInput" v-model="promptText" type="text" class="form-control" placeholder="Prompt">
-    <p><button class="btn btn-sm btn-primary" @click="suggest()">Submit Prompt</button></p>
+    <input id="promptInput" @keyup.enter="prompt()" v-model="promptText" type="text" class="form-control" placeholder="Prompt">
+    <button class="btn btn-sm btn-primary" @click="prompt()">Submit Prompt</button>
 </div>
 <div v-else-if="me.state === 3">
     <h3>Your prompt has been submitted!</h3>
-    <p>This prompt may now be used in this game or any future game</p>
+    <h4>This prompt may now be used in this game or any future game</h4>
 </div>
