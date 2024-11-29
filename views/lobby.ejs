@@ -1,0 +1,13 @@
+<h3>Welcome to the lobby!</h3>
+
+<div v-if="players.length < 3">
+    <p>Waiting for players...</p>
+</div>
+<div v-else>
+    <p>Waiting for admin to start (give them a nudge)</p>
+</div>
+
+<p>Players:</p>
+<ul>
+    <li v-for="player in players">{{player.username}}</li>
+</ul>
