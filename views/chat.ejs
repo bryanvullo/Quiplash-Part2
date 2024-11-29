@@ -1,6 +1,8 @@
 <div>
-    <input type="text" @keyup.enter="chat()" v-model="chatmessage" class="form-control" placeholder="Chat">
+    <input type="text" @keyup.enter="chat()" v-model="chatMessage" class="form-control" placeholder="Chat">
     <ul id="chat">
-        <li v-for="message in messages">{{message}}</li>
+        <li v-for="{user, message} in messages">
+            <strong>{{user}}: </strong> {{message}}
+        </li>
     </ul>
 </div>
