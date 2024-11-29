@@ -1,0 +1,17 @@
+<div v-if="me.state === 7">
+    <h3>{{state.currentPrompt}}</h3>
+    <h4>Vote for your favorite answer!</h4>
+    <ul>
+        <li v-for="answerPair in state.answersReceived[state.currentPrompt]">
+            <button class="btn btn-sm btn-primary" @click="vote(answerPair.answer)">{{answerPair.answer}}</button>
+        </li>
+    </ul>
+
+</div>
+<div v-if="me.state === 8">
+    <h3>Your vote has been submitted!</h3>
+    <h4>Waiting for other players...</h4>
+</div>
+<div v-if="me.state === 9">
+    <h3>Sorry you can't vote for yourself buddy</h3>
+</div>
