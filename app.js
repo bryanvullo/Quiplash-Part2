@@ -609,6 +609,28 @@ io.on('connection', socket => {
     //Handle disconnection
     socket.on('disconnect', () => {
         console.log('Dropped connection: ' + socketsToUsers.get(socket));
+        //Remove user from game
+        const username = socketsToUsers.get(socket);
+        socketsToUsers.delete(socket);
+        usersToSockets.delete(username);
+        if (players.has(username)) {
+            const player = players.get(username);
+            players.delete(username);
+            if (player.role === 0) { //if admin disconnects, assign new admin
+                try {
+                    const [nextUsername, nextPlayer] = players.entries().next().value;
+                    nextPlayer.role = 0;
+                    players.set(nextUsername, nextPlayer);
+                    console.log('New admin: ' + nextUsername);
+                } catch (e) {
+                    console.log('No more players');
+                }
+            }
+        }
+        if (audience.has(username)) {
+            audience.delete(username);
+        }
+        updateAll();
     });
     
     //Handle register
