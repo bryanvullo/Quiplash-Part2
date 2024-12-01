@@ -100,6 +100,7 @@ function handleJoin(socket, username) {
         if (players.size === 0) {
             player.role = 0;
             players.set(username, player);
+            state.state = 1;
         } else if (players.size < 8) {
             player.role = 1;
             players.set(username, player);
@@ -151,6 +152,16 @@ async function handleLogin(socket, username, password) {
     }
 }
 
+// handle prompt suggestion
+async function handleSuggest(socket, keyword) {
+    console.log('Handling prompt suggestion: ' + keyword);
+    
+    const response = await suggestPromptAz(keyword);
+    const prompt = response.suggestion;
+    console.log('Suggested prompt: ' + prompt);
+    socket.emit('suggest', prompt);
+}
+
 // handle prompt
 async function handlePrompt(socket, prompt) {
     console.log('Handling prompt submission: ' + prompt);
@@ -165,12 +176,11 @@ async function handlePrompt(socket, prompt) {
     
     // submit prompt to API
     const response = await createPromptAz(prompt, username);
-    const data = response.data;
-    if (data.result === true) {
+    if (response.result === true) {
         console.log('Prompt submitted successfully');
     } else {
         console.log('Prompt not submitted');
-        error(socket, data.msg, false);
+        error(socket, response.msg, false);
         return;
     }
     
@@ -181,6 +191,7 @@ async function handlePrompt(socket, prompt) {
     } else{
         state.activePrompts.push(prompt);
     }
+    updateAll();
 }
 
 // handle answer
@@ -254,8 +265,7 @@ function allVotesIn() {
 }
 
 // handle next
-function handleNext(socket) {
-    console.log('Handling next');
+async function handleNext(socket) {
     // game states: 0=not started, 1=joining, 2=prompts, 3=answers, 4=voting, 5=results, 6=scores, 7=game over
     switch(state.state) {
         case 0:
@@ -271,8 +281,9 @@ function handleNext(socket) {
             }
             break;
         case 2:
-            if (endPrompts()) {
+            if (allPromptsSubmitted(socket)) {
                 console.log('Prompts phase over, starting answers');
+                await endPrompts();
                 startAnswers();
                 state.state++;
                 updateAll();
@@ -310,7 +321,7 @@ function handleNext(socket) {
             console.log('Total Scores phase over, ending game');
             if (endTotalScores()) {
                 state.state++;
-                endGame();
+                await endGame();
             } else {
                 //there's more rounds to play
                 state.roundNumber++;
@@ -346,39 +357,44 @@ function startPrompts(socket) {
     
     return true;
 }
-// end prompts
-function endPrompts(socket) {
+function allPromptsSubmitted(socket) {
     // check if every player has submitted a prompt
-    for (const [_, player] in players) {
-        if (player.state !== 3) {
+    console.log("checking if all players have submitted a prompt")
+    for (let [_, player] of players) {
+        if (player.state < 3) {
+            console.log('Cannot advance: Not all players have submitted a prompt');
             error(socket, 'Not all players have submitted a prompt', false);
             return false;
         }
     }
-    
+    return true;
+}
+// end prompts
+async function endPrompts(socket) {
     // initialize the active prompts
-    let numPrompts = 3 * (players.size % 2 === 0 ? players.size / 2 : players.size);
+    let numPrompts = 3 * (players.size % 2 === 0 ? players.size / 2
+        : players.size);
     let promptsGame = Array.from(submittedPrompts.values());
-    let promptsApi = getAPIPrompts().filter(prompt => !promptsGame.includes(prompt));
+    const apiPrompts = await getAPIPrompts();
+    let promptsApi = apiPrompts.filter(prompt => !promptsGame.includes(prompt));
     
     // try to get equal number of prompts from API and game submitted
-    if (promptsApi.length > numPrompts/2 && promptsGame.length > numPrompts/2) {
-        promptsGame = promptsGame.slice(0, numPrompts/2);
-        promptsApi = promptsApi.slice(0, numPrompts/2);
+    if (promptsApi.length > numPrompts / 2 && promptsGame.length > numPrompts
+        / 2) {
+        promptsGame = promptsGame.slice(0, numPrompts / 2);
+        promptsApi = promptsApi.slice(0, numPrompts / 2);
         state.activePrompts = promptsGame.concat(promptsApi);
-    } else if (promptsApi.length > numPrompts/2) {
+    } else if (promptsApi.length > numPrompts / 2) {
         numPrompts -= promptsGame.length;
         promptsApi = promptsApi.slice(0, numPrompts);
         state.activePrompts = promptsGame.concat(promptsApi);
-    } else if (promptsGame.length > numPrompts/2) {
+    } else if (promptsGame.length > numPrompts / 2) {
         numPrompts -= promptsApi.length;
         promptsGame = promptsGame.slice(0, numPrompts);
         state.activePrompts = promptsGame.concat(promptsApi);
     } else {
         state.activePrompts = promptsGame.concat(promptsApi);
     }
-    
-    return true;
 }
 // start answers
 function startAnswers() {
@@ -428,7 +444,7 @@ function startAnswers() {
     }
     
     // add prompt to current prompt
-    for (const [_, player] in players) {
+    for (let [_, player] of players) {
         player.prompt = player.prompts.pop();
     }
 }
@@ -554,17 +570,16 @@ async function callAzureFunction(endpoint, method, data={}) {
         console.log("Response from Azure function: ", response.data);
         return response.data;
     } catch (e) {
-        console.error("Error in calling Azure function: ", e.response.data);
+        console.error("Error in calling Azure function: ", e);
         return e.response.data;
     }
 }
 // get prompts from API
-function getAPIPrompts() {
+async function getAPIPrompts() {
     const prompts = [];
     const usernames = Array.from(players.keys());
-    const response = getUtilsAz(usernames,state.language);
-    const data = response.data;
-    for (const entry of data) {
+    const response = await getUtilsAz(usernames, state.language);
+    for (const entry of response) {
         prompts.push(entry.text);
     }
     return prompts;
@@ -580,19 +595,19 @@ function updatePlayerAz(username, addToGames, addToScore) {
     return callAzureFunction('/player/update', 'put', {username, addToGames, addToScore});
 }
 function createPromptAz(text, username) {
-    return callAzureFunction('prompt/create', 'post', {text, username});
+    return callAzureFunction('/prompt/create', 'post', {text, username});
 }
 function deletePromptAz(username) {
-    return callAzureFunction('prompt/delete', 'post', {username});
+    return callAzureFunction('/prompt/delete', 'post', {username});
 }
 function suggestPromptAz(keyword) {
-    return callAzureFunction('prompt/suggest', 'post', {keyword});
+    return callAzureFunction('/prompt/suggest', 'post', {keyword});
 }
-function getUtilsAz(players, langCode) {
-    return callAzureFunction('utils/prompts', 'get', {players, langCode});
+function getUtilsAz(players, language) {
+    return callAzureFunction('/utils/get', 'get', {players, language});
 }
 function podiumAz() {
-    return callAzureFunction('utils/podium', 'get');
+    return callAzureFunction('/utils/podium', 'get');
 }
 
 //Handle new connection
@@ -649,6 +664,12 @@ io.on('connection', socket => {
     socket.on('prompt', prompt => {
         console.log('Handling prompt: ' + prompt);
         handlePrompt(socket, prompt);
+    });
+    
+    // Handle suggest prompt
+    socket.on('suggest', keyword => {
+        console.log('Handling suggest: ' + keyword);
+        handleSuggest(socket, keyword);
     });
     
     //Handle answer
