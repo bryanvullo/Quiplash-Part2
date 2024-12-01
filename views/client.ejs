@@ -3,7 +3,7 @@
 
     <%- include('header'); -%>
 
-    <h2 class="title">ECS Example Game</h2>
+    <h2 class="title">Quiplash</h2>
 
     <div id="game">
 
@@ -13,7 +13,22 @@
         </div>
 
         <div v-if="connected">
-            <p>hello world my state: {{me.role}}</p>
+
+            <div v-if="state.state === 1">
+                <%- include('lobby'); -%>
+            </div>
+            <div v-else-if="state.state === 2">
+                <%- include('suggestPrompt'); -%>
+            </div>
+            <div v-else-if="state.state === 3">
+                <%- include('answer'); -%>
+            </div>
+            <div v-else-if="state.state === 4">
+                <%- include('voting'); -%>
+            </div>
+            <div v-else-if="state.state >= 5">
+                <%- include('waiting'); -%>
+            </div>
 
             <div v-if="me.state === 0">
                 <%- include('credentialsPrompt'); -%>
@@ -29,11 +44,11 @@
 
         <!-- Admin Advance Button -->
         <div v-if="me.role === 0">
-            <%- include('nextButton'); -%>>
+            <%- include('nextButton'); -%>
         </div>
 
         <!-- Admin Debug Info -->
-        <div class="admin" v-if="me.role === 0">
+        <div class="debug">
             <p><strong>Debug information:</strong> My state: {{me.state}} | Game state: {{state.state}}</p>
         </div>
 
