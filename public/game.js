@@ -16,36 +16,52 @@ var app = new Vue({
         state: { state: 0 },
         players: {},
         username: '',
-        password: ''
+        password: '',
+        promptText: '',
+        answerText: '',
+        keyword: ''
     },
     mounted: function() {
         connect(); 
     },
     methods: {
-        handleChat(message) {
+        handleChat(user, message) {
             if(this.messages.length + 1 > 10) {
                 this.messages.pop();
             }
-            this.messages.unshift(message);
+            this.messages.unshift({user, message});
+        },
+        handleSuggestion(prompt) {
+            this.promptText = prompt;
         },
         chat() {
-            socket.emit('chat',this.chatMessage);
+            socket.emit('chat', this.chatMessage);
             this.chatMessage = '';
         },
-        registerClicked(username, password) {
-            socket.emit('register', username, password);
+        registerClicked() {
+            socket.emit('register', this.username, this.password);
+            this.username = '';
+            this.password = '';
         },
-        login(username, password) {
-            socket.emit('login', username, password);
+        login() {
+            socket.emit('login', this.username, this.password);
+            this.username = '';
+            this.password = '';
         },
-        prompt(prompt) {
-            socket.emit('prompt', prompt);
+        prompt() {
+            socket.emit('prompt', this.promptText);
+            this.promptText = '';
         },
-        answer(answer, prompt) {
-            socket.emit('answer', answer, prompt);
+        suggest() {
+            socket.emit('suggest', this.keyword);
+            this.keyword = '';
         },
-        vote(answer, prompt) {
-            socket.emit('vote', answer, prompt);
+        answer() {
+            socket.emit('answer', this.answerText, this.me.prompt);
+            this.answerText = '';
+        },
+        vote(answer) {
+            socket.emit('vote', answer, this.state.currentPrompt);
         },
         next() {
             socket.emit('next');
@@ -90,13 +106,23 @@ function connect() {
     });
 
     //Handle incoming chat message
-    socket.on('chat', function(message) {
-        app.handleChat(message);
+    socket.on('chat', function(user, message) {
+        app.handleChat(user, message);
+    });
+    
+    // Handle incoming suggestion
+    socket.on('suggest', function(prompt) {
+        app.handleSuggestion(prompt);
     });
 
     //Handle update
     socket.on('state', function(data) {
         app.update(data);
+    });
+    
+    //Handle failure
+    socket.on('fail', function(message) {
+        app.fail(message);
     });
 
 }
