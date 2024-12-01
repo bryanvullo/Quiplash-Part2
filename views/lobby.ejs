@@ -4,7 +4,7 @@
     <h4>Waiting for players...</h4>
 </div>
 <div v-else>
-    <h4>Waiting for admin to start (give them a nudge)</h4>
+    <h4 v-if="me.role !== 0">Waiting for admin to start (give them a nudge)</h4>
 </div>
 
 <h4>Players:</h4>
