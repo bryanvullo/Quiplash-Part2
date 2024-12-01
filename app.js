@@ -525,7 +525,7 @@ function endTotalScores() {
 // end game
 async function endGame() {
     //update players in cloud server
-    for (const [username, _] in players) {
+    for (let [username, _] of players) {
         const response = await updatePlayerAz(username, 1, state.totalScores[username]);
         console.log('Player ' + username + ' update response:' + response);
         if (response.result === true) {
