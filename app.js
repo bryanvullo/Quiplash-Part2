@@ -7,6 +7,7 @@ const app = express();
 //Setup socket.io
 const server = require('http').Server(app);
 const io = require('socket.io')(server);
+const us = require('underscore');
 
 // set up requests
 const axios = require("axios");
@@ -201,7 +202,7 @@ function handleAnswer(socket, answer, prompt) {
     const playerState = players.get(username);
     
     // store answer to prompt
-    if (state.answersReceived.has(prompt)) {
+    if (state.answersReceived.hasOwnProperty(prompt)) {
         state.answersReceived[prompt].push({answer: answer, username: username});
     } else {
         state.answersReceived[prompt] = [{answer: answer, username: username}];
@@ -211,8 +212,10 @@ function handleAnswer(socket, answer, prompt) {
     if (playerState.prompts.length !== 0) {
         playerState.prompt = playerState.prompts.pop();
     } else {
+        playerState.prompt = ''
         playerState.state = 5;
     }
+    updateAll();
 }
 
 // handle vote
@@ -224,39 +227,21 @@ function handleVote(socket, answer, prompt) {
     user.state = 8;
     
     // add vote to prompt and answer
-    if (state.votesReceived.has(prompt)) {
+    if (state.votesReceived.hasOwnProperty(prompt)) {
         state.votesReceived[prompt].push(answer);
     } else {
         state.votesReceived[prompt] = [answer];
     }
-    
-    // check if all votes are in
-    // const allVotes = allVotesIn();
-    // if (allVotes) {
-    //     if (state.roundPrompts.length === 0) return;
-    //     state.currentPrompt = state.roundPrompts.pop();
-    //     const answers = state.answersReceived[state.currentPrompt];
-    //     const playersWhoAnswered = answers.map(answer => answer.username);
-    //     for (const [_, player] of players) {
-    //         if (playersWhoAnswered.includes(player.username)) {
-    //             player.state = 9;
-    //         } else {
-    //             player.state = 7;
-    //         }
-    //     }
-    //     for (const [_, member] of audience) {
-    //         member.state = 7;
-    //     }
-    // }
+    updateAll();
 }
 
 function allVotesIn() {
-    for (const [_, player] of players) {
+    for (let [_, player] of players) {
         if (player.state < 8) {
             return false;
         }
     }
-    for (const [_, member] of audience) {
+    for (let [_, member] of audience) {
         if (member.state < 8) {
             return false;
         }
@@ -290,7 +275,7 @@ async function handleNext(socket) {
             }
             break;
         case 3:
-            if (endAnswers()) {
+            if (endAnswers(socket)) {
                 console.log('Answers phase over, starting votes');
                 state.state++;
                 startVotes();
@@ -370,13 +355,14 @@ function allPromptsSubmitted(socket) {
     return true;
 }
 // end prompts
-async function endPrompts(socket) {
+async function endPrompts() {
     // initialize the active prompts
     let numPrompts = 3 * (players.size % 2 === 0 ? players.size / 2
         : players.size);
     let promptsGame = Array.from(submittedPrompts.values());
     const apiPrompts = await getAPIPrompts();
     let promptsApi = apiPrompts.filter(prompt => !promptsGame.includes(prompt));
+    promptsApi = [... new Set(promptsApi)];
     
     // try to get equal number of prompts from API and game submitted
     if (promptsApi.length > numPrompts / 2 && promptsGame.length > numPrompts
@@ -395,14 +381,15 @@ async function endPrompts(socket) {
     } else {
         state.activePrompts = promptsGame.concat(promptsApi);
     }
+    state.activePrompts = us.shuffle(state.activePrompts);
 }
 // start answers
 function startAnswers() {
     // set user states 4:players, 6:audience
-    for (const [_, player] in players) {
+    for (let [_, player] of players) {
         player.state = 4;
     }
-    for (const [_, member] in audience) {
+    for (let [_, member] of audience) {
         member.state = 6;
     }
     
@@ -411,7 +398,7 @@ function startAnswers() {
     if (evenPlayers) {
         // assign 1 prompt per player, 2 players per prompt
         const availablePrompt = [];
-        for (const [_, player] in players) {
+        for (let [_, player] of players) {
             if (availablePrompt.length === 0) {
                 const prompt = state.activePrompts.pop();
                 availablePrompt.push(prompt);
@@ -449,10 +436,11 @@ function startAnswers() {
     }
 }
 // end answers
-function endAnswers() {
+function endAnswers(socket) {
     //check if every player has answered
-    for (const [_, player] in players) {
+    for (let [_, player] of players) {
         if (player.state !== 5) {
+            error(socket, 'Not all players have answered', false);
             return false;
         }
     }
@@ -462,14 +450,14 @@ function endAnswers() {
 function startVotes() {
     state.currentPrompt = state.roundPrompts.pop();
     const playersWhoAnswered = state.answersReceived[state.currentPrompt].map(answer => answer.username);
-    for (const [username, player] in players) {
+    for (let [username, player] of players) {
         if (playersWhoAnswered.includes(username)) {
             player.state = 9; //cannot vote
         } else {
             player.state = 7;
         }
     }
-    for (const [_, member] in audience) {
+    for (let [_, member] of audience) {
         member.state = 7;
     }
 }
@@ -591,8 +579,8 @@ function registerPlayerAz(username, password) {
 function loginPlayerAz(username, password) {
     return callAzureFunction('/player/login', 'get', {username, password});
 }
-function updatePlayerAz(username, addToGames, addToScore) {
-    return callAzureFunction('/player/update', 'put', {username, addToGames, addToScore});
+function updatePlayerAz(username, add_to_games_played, add_to_score) {
+    return callAzureFunction('/player/update', 'put', {username, add_to_games_played, add_to_score});
 }
 function createPromptAz(text, username) {
     return callAzureFunction('/prompt/create', 'post', {text, username});
