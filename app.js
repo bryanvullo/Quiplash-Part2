@@ -12,6 +12,7 @@ const us = require('underscore');
 // set up requests
 const axios = require("axios");
 
+//Set up game state
 const players = new Map();
 const audience = new Map();
 const socketsToUsers = new Map();
@@ -39,7 +40,8 @@ app.get('/display', (req, res) => {
 const BACKEND_ENDPOINT = process.env.BACKEND || 'http://localhost:8181';
 const BACKEND_KEY = process.env.BACKEND_KEY || 'test';
 
-//Start the server
+// HANDLE REQUESTS
+// Start the server
 function startServer() {
     const PORT = process.env.PORT || 8080;
     server.listen(PORT, () => {
@@ -49,7 +51,7 @@ function startServer() {
     });
 }
 
-//Chat message
+// Chat message
 function handleChat(name, message) {
     console.log('Handling chat: ' + message);
     io.emit('chat', name, message);
@@ -70,7 +72,7 @@ function error(socket, message, halt) {
     }
 }
 
-//Update state of all users
+// Update state of all users
 function updateAll() {
     console.log('Updating all players');
     for(let [_,socket] of usersToSockets) {
@@ -78,7 +80,7 @@ function updateAll() {
     }
 }
 
-//Update one user
+// Update one user
 function updateUser(socket) {
     const username = socketsToUsers.get(socket);
     const theUser = players.get(username);
@@ -86,7 +88,7 @@ function updateUser(socket) {
     socket.emit('state', data);
 }
 
-//Handle joining of players
+// Handle joining of players
 function handleJoin(socket, username) {
     console.log('Joining game: ' + username);
     announce("Welcome to the game, " + username + "!");
@@ -318,6 +320,7 @@ async function handleNext(socket) {
     }
 }
 
+
 // GAME TRANSITIONS LOGIC
 // start game
 function startGame() {
@@ -332,6 +335,7 @@ function startGame() {
     }
     state.roundNumber = 1;
 }
+
 // start prompts
 function startPrompts(socket) {
     // checking if we can start the game
@@ -342,6 +346,7 @@ function startPrompts(socket) {
     
     return true;
 }
+
 function allPromptsSubmitted(socket) {
     // check if every player has submitted a prompt
     console.log("checking if all players have submitted a prompt")
@@ -354,6 +359,7 @@ function allPromptsSubmitted(socket) {
     }
     return true;
 }
+
 // end prompts
 async function endPrompts() {
     // initialize the active prompts
@@ -383,6 +389,7 @@ async function endPrompts() {
     }
     state.activePrompts = us.shuffle(state.activePrompts);
 }
+
 // start answers
 function startAnswers() {
     // set user states 4:players, 6:audience
@@ -435,6 +442,7 @@ function startAnswers() {
         player.prompt = player.prompts.pop();
     }
 }
+
 // end answers
 function endAnswers(socket) {
     //check if every player has answered
@@ -446,6 +454,7 @@ function endAnswers(socket) {
     }
     return true;
 }
+
 // start votes
 function startVotes() {
     state.currentPrompt = state.roundPrompts.pop();
@@ -461,6 +470,7 @@ function startVotes() {
         member.state = 7;
     }
 }
+
 // end votes
 function endVotes(socket) {
     // check if all votes are in
@@ -501,12 +511,14 @@ function endVotes(socket) {
     
     return true;
 }
+
 // end results
 function endPromptResults() {
     // check if all prompts have been voted on
     return state.roundPrompts.length === 0;
     
 }
+
 // start scores
 function startTotalScores() {
     // calculate total scores
@@ -517,11 +529,13 @@ function startTotalScores() {
         state.totalScores[player] += score;
     }
 }
+
 // end scores
 function endTotalScores() {
     //check if all rounds are over
     return state.roundNumber === MAX_ROUNDS;
 }
+
 // end game
 async function endGame() {
     //update players in cloud server
@@ -562,6 +576,7 @@ async function callAzureFunction(endpoint, method, data={}) {
         return e.response.data;
     }
 }
+
 // get prompts from API
 async function getAPIPrompts() {
     const prompts = [];
@@ -572,28 +587,36 @@ async function getAPIPrompts() {
     }
     return prompts;
 }
+
 // dedicated functions for Azure functions
 function registerPlayerAz(username, password) {
     return callAzureFunction('/player/register', 'post', {username, password});
 }
+
 function loginPlayerAz(username, password) {
     return callAzureFunction('/player/login', 'get', {username, password});
 }
+
 function updatePlayerAz(username, add_to_games_played, add_to_score) {
     return callAzureFunction('/player/update', 'put', {username, add_to_games_played, add_to_score});
 }
+
 function createPromptAz(text, username) {
     return callAzureFunction('/prompt/create', 'post', {text, username});
 }
+
 function deletePromptAz(username) {
     return callAzureFunction('/prompt/delete', 'post', {username});
 }
+
 function suggestPromptAz(keyword) {
     return callAzureFunction('/prompt/suggest', 'post', {keyword});
 }
+
 function getUtilsAz(players, language) {
     return callAzureFunction('/utils/get', 'get', {players, language});
 }
+
 function podiumAz() {
     return callAzureFunction('/utils/podium', 'get');
 }
