@@ -16,6 +16,7 @@ var app = new Vue({
         // game state: 0=not started, 1=joining, 2=prompts, 3=answers, 4=voting, 5=results, 6=scores, 7=game over
         state: { state: 0 },
         players: {},
+        audience: {},
         username: '',
         password: '',
         promptText: '',
@@ -68,9 +69,15 @@ var app = new Vue({
             socket.emit('next');
         },
         update(data) {
-            this.me = data.me;
             this.state = data.state;
             this.players = data.players;
+            this.audience = data.audience;
+            //sort players by score (DESC)
+            this.state.totalScores = Object.entries(this.state.totalScores)
+                .sort(([,a],[,b]) => b-a);
+        },
+        clientUpdate(data) {
+            this.me = data.me;
         },
         fail(message) {
             console.log('Error: ' + message);
@@ -119,6 +126,11 @@ function connect() {
     //Handle update
     socket.on('state', function(data) {
         app.update(data);
+    });
+    
+    //Handle client update
+    socket.on('clientState', function(data) {
+        app.clientUpdate(data);
     });
     
     //Handle failure
