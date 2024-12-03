@@ -14,26 +14,27 @@
 
         <div v-if="connected">
 
-            <div v-if="state.state === 1">
-                <%- include('lobby'); -%>
-            </div>
-            <div v-else-if="state.state === 2">
-                <%- include('suggestPrompt'); -%>
-            </div>
-            <div v-else-if="state.state === 3">
-                <%- include('answer'); -%>
-            </div>
-            <div v-else-if="state.state === 4">
-                <%- include('voting'); -%>
-            </div>
-            <div v-else-if="state.state >= 5">
-                <%- include('waiting'); -%>
-            </div>
-
             <div v-if="me.state === 0">
                 <%- include('credentialsPrompt'); -%>
             </div>
             <div v-else>
+
+                <div v-if="state.state === 1">
+                    <%- include('lobby'); -%>
+                </div>
+                <div v-else-if="state.state === 2">
+                    <%- include('suggestPrompt'); -%>
+                </div>
+                <div v-else-if="state.state === 3">
+                    <%- include('answer'); -%>
+                </div>
+                <div v-else-if="state.state === 4">
+                    <%- include('voting'); -%>
+                </div>
+                <div v-else-if="state.state >= 5">
+                    <%- include('waiting'); -%>
+                </div>
+
                 <%- include('chat'); -%>
             </div>
 
@@ -48,9 +49,9 @@
         </div>
 
         <!-- Admin Debug Info -->
-        <div class="debug">
-            <p><strong>Debug information:</strong> My state: {{me.state}} | Game state: {{state.state}}</p>
-        </div>
+<!--        <div class="debug">-->
+<!--            <p><strong>Debug information:</strong> My state: {{me.state}} | Game state: {{state.state}}</p>-->
+<!--        </div>-->
 
 
     </div>
