@@ -7,7 +7,7 @@ var app = new Vue({
         error: false,
         connected: false,
         messages: [],
-        gameURL: 'http://example.com',
+        gameURL: 'https://quiplash-442521.nw.r.appspot.com',
         chatMessage: '',
         // role: 0=admin, 1=player, 2=audience
         // player state: 0=not logged in, 1=logged in/waiting, 2=awaiting prompt input, 3=prompt submitted, 4=awaiting answer input, 5=answer submitted,
@@ -67,6 +67,9 @@ var app = new Vue({
         },
         next() {
             socket.emit('next');
+        },
+        reset() {
+            socket.emit('reset');
         },
         update(data) {
             this.state = data.state;
