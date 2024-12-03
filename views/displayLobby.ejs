@@ -1,0 +1,23 @@
+<div>
+    <h3>
+        <strong>URL to join the game: </strong> {{gameURL}}
+    </h3>
+
+    <div class="row">
+
+        <div class="col-md-4">
+            <h3><strong>Players: </strong></h3>
+            <ul>
+                <li v-for="player of players">{{player.username}}</li>
+            </ul>
+        </div>
+
+        <div class="col-md-4">
+            <h3><strong>Audience: </strong></h3>
+            <ul>
+                <li v-for="member in audience">{{member.username}}</li>
+            </ul>
+        </div>
+
+    </div>
+</div>
