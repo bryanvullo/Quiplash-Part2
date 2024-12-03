@@ -1,0 +1,16 @@
+<h3>
+    Submit a prompt to use in the game!
+</h3>
+
+<h4>
+    <strong>Number of Submitted Prompts: </strong> {{Object.keys(state.submittedPrompts).length}}
+</h4>
+
+<h4>
+    Players who have submitted prompts:
+</h4>
+<ul>
+    <li v-for="username of Object.keys(state.submittedPrompts)">
+        {{username}}
+    </li>
+</ul>
