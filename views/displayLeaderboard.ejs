@@ -1,0 +1,26 @@
+<h3>Leaderboards</h3>
+
+<div class="row">
+
+    <div class="col-md-4">
+        <h4>Game Leaderboard</h4>
+        <div v-for="arr in state.totalScores">
+            <ol>
+                <li><strong>{{arr[0]}}: {{arr[1]}}</strong></li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <h4>Global Podium</h4>
+        <div v-for="rank in Object.keys(state.podium)">
+            <h5><strong>{{rank}}</strong></h5>
+            <div v-for="player in state.podium[rank]">
+                <ul>
+                    <li><strong>{{player.username}}</strong> (Points per Game: {{player.total_score / player.games_played}})</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+</div>
