@@ -3,17 +3,66 @@
 
     <%- include('header'); -%>
 
-    <h2 class="title">ECS Example Game</h2>
+    <h2 class="title">Quiplash by Bryan Vullo</h2>
 
     <div id="game">
-        <div v-if="connected">
-            <ul id="chat">
-                <li v-for="message in messages">{{message}}</li>
-            </ul>
+        <div v-if="connected" class="row">
+
+            <div id="main-panel" class="col-md-9 text-center">
+                <div v-if="state.state === 1 || state.state === 0">
+                    <!-- Waiting for players.
+                        Showing the players that have joined so far, and provide the URL to join the game. -->
+                    <%- include('displayLobby'); -%>
+                </div>
+                <div v-else-if="state.state === 2">
+                    <!-- Prompt suggestion
+                        Showing how many prompts have been suggested and by who -->
+                    <%- include('displayPrompt'); -%>
+                </div>
+                <div v-else-if="state.state === 3">
+                    <!-- Answers being received
+                        Showing which players have answered and who is being waited on -->
+                    <%- include('displayAnswer'); -%>
+                </div>
+                <div v-else-if="state.state === 4">
+                    <!-- Voting in progress (per prompt)
+                        Show the prompt and the answers (but not who they were by) -->
+                    <%- include('displayVoting'); -%>
+                </div>
+                <div v-else-if="state.state === 5">
+                    <!-- Voting results
+                        Show the prompt, the answers, who wrote both answers, and the points the answers received -->
+                    <%- include('displayVoteResults'); -%>
+                </div>
+                <div v-else-if="state.state === 6">
+                    <!-- Scores
+                        Show the current status of the overall leaderboard -->
+                    <%- include('displayScore'); -%>
+                </div>
+                <div v-else-if="state.state === 7">
+                    <!-- Game over
+                        Show the final state of the leaderboard and the overall podium -->
+                    <%- include('displayLeaderboard'); -%>
+                </div>
+            </div>
+
+            <div id="chat-panel" class="col-md-3 text-center">
+                <h3><strong>Game Chat</strong></h3>
+                <ul id="chat">
+                    <li v-for="{user, message} in messages">
+                        <strong>{{user}}: </strong> {{message}}
+                    </li>
+                </ul>
+            </div>
+
         </div>
         <div v-else>
             <p>Connecting...</p>
         </div>
+
+<!--        <div class="debug">-->
+<!--            <p><strong>Debug information:</strong> Game state: {{state.state}}</p>-->
+<!--        </div>-->
     </div>
 
     <%- include('footer'); -%>
