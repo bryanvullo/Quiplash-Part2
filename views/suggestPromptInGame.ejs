@@ -1,0 +1,5 @@
+<div v-if="state.state > 2">
+    <h6>Suggest another prompt!</h6>
+    <input id="promptInput" @keyup.enter="prompt()" v-model="promptText" type="text" class="form-control" placeholder="Prompt">
+    <button class="btn btn-sm btn-primary" @click="prompt()">Submit Prompt</button>
+</div>
