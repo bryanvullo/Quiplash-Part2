@@ -17,8 +17,7 @@ const players = new Map();
 const audience = new Map();
 const socketsToUsers = new Map();
 const usersToSockets = new Map();
-const submittedPrompts = new Map();
-let state = {state: 0, players: players, audience: audience, activePrompts: [], roundPrompts: [],
+let state = {state: 0, submittedPrompts: {}, activePrompts: [], roundPrompts: [],
     answersReceived: {}, votesReceived: {}, currentPrompt: '', promptVotes: {}, roundScores: {}, totalScores: {},
     language: 'en', roundNumber: 0, podium: {}};
 const MAX_ROUNDS = 3;
@@ -31,6 +30,7 @@ app.use('/static', express.static('public'));
 app.get('/', (req, res) => {
     res.render('client');
 });
+
 //Handle display interface on /display
 app.get('/display', (req, res) => {
     res.render('display');
@@ -78,14 +78,27 @@ function updateAll() {
     for(let [_,socket] of usersToSockets) {
         updateUser(socket);
     }
+    //update all including display
+    const data = {
+        state: state,
+        players: Object.fromEntries(players),
+        audience: Object.fromEntries(audience)
+    };
+    io.emit('state', data);
 }
 
 // Update one user
 function updateUser(socket) {
     const username = socketsToUsers.get(socket);
-    const theUser = players.get(username);
-    const data = { state: state, me: theUser, players: Object.fromEntries(players) };
-    socket.emit('state', data);
+    const isPlayer = players.has(username);
+    let theUser;
+    if (isPlayer) {
+        theUser = players.get(username);
+    } else {
+        theUser = audience.get(username);
+    }
+    const data = { me: theUser };
+    socket.emit('clientState', data);
 }
 
 // Handle joining of players
@@ -190,7 +203,7 @@ async function handlePrompt(socket, prompt) {
     // check if waiting for prompt in prompts phase, as we can submit whenever in the game
     if (user.state === 2) {
         user.state = 3;
-        submittedPrompts.set(username, prompt);
+        state.submittedPrompts[username] = prompt;
     } else{
         state.activePrompts.push(prompt);
     }
@@ -365,7 +378,7 @@ async function endPrompts() {
     // initialize the active prompts
     let numPrompts = 3 * (players.size % 2 === 0 ? players.size / 2
         : players.size);
-    let promptsGame = Array.from(submittedPrompts.values());
+    let promptsGame = Object.values(state.submittedPrompts);
     const apiPrompts = await getAPIPrompts();
     let promptsApi = apiPrompts.filter(prompt => !promptsGame.includes(prompt));
     promptsApi = [... new Set(promptsApi)];
@@ -408,6 +421,7 @@ function startAnswers() {
         for (let [_, player] of players) {
             if (availablePrompt.length === 0) {
                 const prompt = state.activePrompts.pop();
+                state.roundPrompts.push(prompt);
                 availablePrompt.push(prompt);
                 
                 player.prompts.push(prompt);
@@ -500,8 +514,8 @@ function endVotes(socket) {
     state.promptVotes = playerVotes;
     
     // calculate scores for this prompt
-    for (const [player, votes] in playerVotes) {
-        const score = votes * state.roundNumber * 100;
+    for (const player in playerVotes) {
+        const score = playerVotes[player] * state.roundNumber * 100;
         
         if (state.roundScores[state.roundNumber][player] === undefined) {
             state.roundScores[state.roundNumber][player] = 0;
@@ -522,10 +536,11 @@ function endPromptResults() {
 // start scores
 function startTotalScores() {
     // calculate total scores
-    for (const [player, score] in state.roundScores[state.roundNumber]) {
+    for (const player in state.roundScores[state.roundNumber]) {
         if (state.totalScores[player] === undefined) {
             state.totalScores[player] = 0;
         }
+        const score = state.roundScores[state.roundNumber][player];
         state.totalScores[player] += score;
     }
 }
@@ -552,7 +567,7 @@ async function endGame() {
     //get global podium
     const response = await podiumAz();
     console.log('Podium response:' + response);
-    state.podium = response.data;
+    state.podium = response;
 }
 
 
