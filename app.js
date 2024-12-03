@@ -570,6 +570,14 @@ async function endGame() {
     state.podium = response;
 }
 
+// reset game
+function resetGame() {
+    console.log('Resetting game state');
+    state = {state: 0, submittedPrompts: {}, activePrompts: [], roundPrompts: [],
+        answersReceived: {}, votesReceived: {}, currentPrompt: '', promptVotes: {}, roundScores: {}, totalScores: {},
+        language: 'en', roundNumber: 0, podium: {}};
+}
+
 
 // AZURE FUNCTIONS
 // main function to call Azure functions
@@ -671,6 +679,10 @@ io.on('connection', socket => {
         if (audience.has(username)) {
             audience.delete(username);
         }
+        // reset game if no players left
+        if (players.size === 0) {
+            resetGame();
+        }
         updateAll();
     });
     
@@ -716,6 +728,12 @@ io.on('connection', socket => {
         handleNext(socket);
     });
     
+    //Handle reset
+    socket.on('reset', () => {
+        console.log('Handling reset');
+        resetGame();
+        updateAll();
+    });
 });
 
 //Start server
