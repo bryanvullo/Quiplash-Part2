@@ -15,6 +15,16 @@ body {
     padding-top: 10px;
     height: 100vh;
 }
+#game {
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    height: 100%;
+    padding: max(10px, 5%);
+}
+div {
+    padding: 10px;
+}
 #chat { 
     list-style-type: none; 
     margin: 0; 
