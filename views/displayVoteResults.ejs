@@ -1,0 +1,13 @@
+<h3>Voting Results</h3>
+
+<h4>Prompt: {{state.currentPrompt}}</h4>
+
+<div class="row">
+
+    <div v-for="answerPair in state.answersReceived[state.currentPrompt]" class="col-md-4">
+        <h5>{{answerPair.answer}}</h5>
+        <h6>{{answerPair.username}}</h6>
+        <h6>Points received: {{state.promptVotes[answerPair.username] * state.roundNumber * 100}}</h6>
+    </div>
+
+</div>
