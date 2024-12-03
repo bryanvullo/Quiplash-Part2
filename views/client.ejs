@@ -46,8 +46,13 @@
         </div>
 
         <!-- Admin Advance Button -->
-        <div v-if="me.role === 0">
+        <div v-if="me.role === 0 && state.state < 7">
             <%- include('nextButton'); -%>
+        </div>
+
+        <!-- Admin Reset Button -->
+        <div v-if="me.role === 0 && state.state === 7">
+            <%- include('resetButton'); -%>
         </div>
 
         <!-- Admin Debug Info -->
