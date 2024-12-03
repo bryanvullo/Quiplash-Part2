@@ -1,0 +1,23 @@
+<h3>Submit your funny answers to the prompts on your device!</h3>
+
+<div class="row">
+
+    <div class="col-md-4">
+        <h4>Waiting on players: </h4>
+        <ul>
+            <template v-for="player in players">
+                <li v-if="player.state === 4" >{{player.username}}</li>
+            </template>
+        </ul>
+    </div>
+
+    <div class="col-md-4">
+        <h4>Players answered: </h4>
+        <ul>
+            <template v-for="player in players">
+                <li v-if="player.state === 5" >{{player.username}}</li>
+            </template>
+        </ul>
+    </div>
+
+</div>
