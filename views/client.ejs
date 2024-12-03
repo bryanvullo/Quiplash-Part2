@@ -17,27 +17,40 @@
             <div v-if="me.state === 0">
                 <%- include('credentialsPrompt'); -%>
             </div>
-            <div v-else>
+            <div v-else class="row">
+                <div class="col-md-9 text-center">
+                    <div v-if="state.state === 1">
+                        <%- include('lobby'); -%>
+                    </div>
+                    <div v-else-if="state.state === 2">
+                        <%- include('suggestPrompt'); -%>
+                    </div>
+                    <div v-else-if="state.state === 3">
+                        <%- include('answer'); -%>
+                    </div>
+                    <div v-else-if="state.state === 4">
+                        <%- include('voting'); -%>
+                    </div>
+                    <div v-else-if="state.state >= 5">
+                        <%- include('waiting'); -%>
+                    </div>
 
-                <div v-if="state.state === 1">
-                    <%- include('lobby'); -%>
-                </div>
-                <div v-else-if="state.state === 2">
-                    <%- include('suggestPrompt'); -%>
-                </div>
-                <div v-else-if="state.state === 3">
-                    <%- include('answer'); -%>
-                </div>
-                <div v-else-if="state.state === 4">
-                    <%- include('voting'); -%>
-                </div>
-                <div v-else-if="state.state >= 5">
-                    <%- include('waiting'); -%>
+                    <!-- Admin Advance Button -->
+                    <div v-if="me.role === 0 && state.state < 7">
+                        <%- include('nextButton'); -%>
+                    </div>
+
+                    <!-- Admin Reset Button -->
+                    <div v-if="me.role === 0 && state.state === 7">
+                        <%- include('resetButton'); -%>
+                    </div>
                 </div>
 
-                <%- include('suggestPromptInGame'); -%>
+                <div class="col-md-3 text-center">
+                    <%- include('suggestPromptInGame'); -%>
 
-                <%- include('chat'); -%>
+                    <%- include('chat'); -%>
+                </div>
             </div>
 
         </div>
@@ -45,15 +58,6 @@
             <p>Connecting...</p>
         </div>
 
-        <!-- Admin Advance Button -->
-        <div v-if="me.role === 0 && state.state < 7">
-            <%- include('nextButton'); -%>
-        </div>
-
-        <!-- Admin Reset Button -->
-        <div v-if="me.role === 0 && state.state === 7">
-            <%- include('resetButton'); -%>
-        </div>
 
         <!-- Admin Debug Info -->
 <!--        <div class="debug">-->
