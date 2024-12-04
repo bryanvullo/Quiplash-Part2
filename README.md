@@ -13,8 +13,11 @@ The game can be played by following the links: \
 ## Additional Features  extended from the Specification
 - Admin can reset the game once a game is over (in the final leaderboard screen)
 - If all players disconnect, the game will be reset automatically
-- Players can use the AI prompt suggestion feature by submitting a keyword (only in prompt suggestion phase).
+- Players can use the AI prompt suggestion feature by submitting a keyword (only in prompt suggestion screen).
 - Instead of registering and then logging in, users can directly register and login in one step.
+- All players must submit prompts in the prompt suggestion screen before proceeding to the game.
+- All players must give an answer to all the prompts given to them before admin can proceed to the voting screen.
+- All players must vote for on the answers given to them, if the can, before admin can proceed to the voting results screen.
 
 ## Technologies
 It is a simple application written in Javascript, using the Express server framework, VueJS and Socket.IO hosted on Google App Engine.
