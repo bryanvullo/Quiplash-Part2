@@ -576,6 +576,18 @@ function resetGame() {
     state = {state: 0, submittedPrompts: {}, activePrompts: [], roundPrompts: [],
         answersReceived: {}, votesReceived: {}, currentPrompt: '', promptVotes: {}, roundScores: {}, totalScores: {},
         language: 'en', roundNumber: 0, podium: {}};
+    for (let [_, player] of players) {
+        player.state = 0;
+        player.score = 0;
+        player.prompts = [];
+        player.prompt = '';
+    }
+    for (let [_, member] of audience) {
+        member.state = 0;
+        member.score = 0;
+        member.prompts = [];
+        member.prompt = '';
+    }
 }
 
 
