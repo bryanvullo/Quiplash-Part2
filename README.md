@@ -19,6 +19,11 @@ The game can be played by following the links: \
 - All players must give an answer to all the prompts given to them before admin can proceed to the voting screen.
 - All players must vote for on the answers given to them, if the can, before admin can proceed to the voting results screen.
 
+## Marking
+For marking, if you would like to use your own implementation of the API,
+please comment out the `BACKEND` variable in the `.env` file. 
+This will default the API endpoint to port 8080 on your local device.
+
 ## Technologies
 It is a simple application written in Javascript, using the Express server framework, VueJS and Socket.IO hosted on Google App Engine.
 It also uses a backend cloud database and functions hosted on Azure.
